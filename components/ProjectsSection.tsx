@@ -29,7 +29,7 @@ const projects = [
     description:
       "Comprehensive LMS platform for managing students, courses, and academic operations built with Next.js and Prisma.",
     tech: ["Next.js", "Prisma", "Tailwind CSS", "PostgreSQL"],
-  image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=600&h=400&fit=crop",
+    image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=600&h=400&fit=crop",
     link: "https://alif-lms.vercel.app/",
     color: "from-purple-500 to-indigo-500",
   },
@@ -45,13 +45,13 @@ const projects = [
   },
   {
     id: 5,
-    title: "Social Media API",
+    title: "Bukalla Shop - E-Commerce Platform",
     description:
-      "Scalable REST API with GraphQL support, real-time notifications, and advanced caching strategies.",
-    tech: ["Node.js", "Prisma", "PostgreSQL", "Redis"],
-    image: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=600&h=400&fit=crop",
-    link: "#",
-    color: "from-cyan-500 to-emerald-500",
+      "Modern e-commerce platform with product browsing, cart management, secure checkout, and responsive design built with Next.js.",
+    tech: ["Next.js", "React", "Tailwind CSS", "E-Commerce"],
+    image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop",
+    link: "https://bukalla-shop.vercel.app/",
+    color: "from-violet-500 to-purple-500",
   },
   {
     id: 6,
