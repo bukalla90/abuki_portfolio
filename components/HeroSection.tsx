@@ -98,10 +98,10 @@ export default function HeroSection() {
       >
         <motion.div variants={itemVariants} className="mb-6">
           <motion.span
-            className="inline-block px-4 py-2 rounded-full bg-cyan-100/80 dark:bg-cyan-900/50 backdrop-blur-sm text-cyan-700 dark:text-cyan-300 text-sm font-medium mb-4 border border-cyan-200/50 dark:border-cyan-700/50"
+            className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-cyan-100/80 to-emerald-100/80 dark:from-cyan-900/50 dark:to-emerald-900/50 backdrop-blur-sm text-cyan-700 dark:text-cyan-300 text-lg sm:text-xl font-semibold mb-4 border-2 border-cyan-300/50 dark:border-cyan-600/50 shadow-lg shadow-cyan-200/50 dark:shadow-cyan-900/30 tracking-wide"
             whileHover={{ scale: 1.05 }}
           >
-            Full Stack Developer
+            ✦ Full Stack Developer ✦
           </motion.span>
         </motion.div>
 
