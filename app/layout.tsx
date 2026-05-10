@@ -13,6 +13,26 @@ export const metadata: Metadata = {
     "Premium portfolio showcasing modern web and mobile applications built by Abubeker Oumer.",
 };
 
+// "B" monogram favicon — slate dark bg + cyan accent to match the portfolio theme
+const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22d3ee"/>
+      <stop offset="100%" style="stop-color:#06b6d4"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
+  <rect x="0" y="27" width="10" height="2.5" rx="1.2" fill="url(#accent)" opacity="0.7"/>
+  <text x="5" y="24" font-family="Georgia, serif" font-size="22" font-weight="700" fill="url(#accent)" letter-spacing="-1">B</text>
+  <circle cx="26" cy="24" r="2" fill="#22d3ee" opacity="0.85"/>
+</svg>`;
+
+const faviconDataUri = `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`;
+
 export default function RootLayout({
   children,
 }: {
@@ -20,6 +40,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" type="image/svg+xml" href={faviconDataUri} />
+        <link rel="shortcut icon" href={faviconDataUri} />
+        <link rel="apple-touch-icon" href={faviconDataUri} />
+      </head>
       <body
         className={`${inter.className} bg-white dark:bg-gray-950 transition-colors duration-300`}
       >
@@ -85,7 +110,7 @@ export default function RootLayout({
                     </svg>
                   </a>
 
-                  {/* Telegram 🔥 */}
+                  {/* Telegram */}
                   <a
                     href="https://t.me/bukalla"
                     target="_blank"
