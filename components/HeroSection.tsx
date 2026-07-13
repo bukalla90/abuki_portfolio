@@ -15,13 +15,6 @@ export default function HeroSection() {
 
     let animationId: number;
     let time = 0;
-    
-    // Array to store multiple propagating waves
-    const waves: Array<{
-      startTime: number;
-      x: number;
-      y: number;
-    }> = [];
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -33,156 +26,145 @@ export default function HeroSection() {
     const animate = () => {
       if (!canvas || !ctx) return;
       
-      ctx.fillStyle = document.documentElement.classList.contains('dark')
-        ? 'rgba(3, 7, 18, 0.15)'
-        : 'rgba(255, 255, 255, 0.15)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       
       const width = canvas.width;
       const height = canvas.height;
+      const isDark = document.documentElement.classList.contains('dark');
       
-      // Heartbeat timing
-      const heartbeatInterval = 1.2; // Time between beats
-      const currentBeatCycle = Math.floor(time / heartbeatInterval);
-      const beatProgress = (time % heartbeatInterval) / heartbeatInterval;
+      // Create horizontal dotted lines across the entire height
+      const lineSpacing = 40; // Space between lines
+      const lineCount = Math.floor(height / lineSpacing) + 2;
       
-      // Create new wave at each heartbeat
-      if (beatProgress < 0.05 && waves.length === 0 || 
-          (waves.length > 0 && currentBeatCycle > Math.floor(waves[waves.length - 1].startTime / heartbeatInterval))) {
-        // Add multiple origin points for each beat
-        const origins = [
-          { x: width * 0.3, y: height * 0.4 },
-          { x: width * 0.7, y: height * 0.6 },
-          { x: width * 0.5, y: height * 0.3 },
-          { x: width * 0.5, y: height * 0.7 },
-          { x: width * 0.2, y: height * 0.5 },
-          { x: width * 0.8, y: height * 0.5 },
-        ];
+      for (let lineIndex = 0; lineIndex < lineCount; lineIndex++) {
+        const y = lineIndex * lineSpacing;
         
-        origins.forEach(origin => {
-          waves.push({
-            startTime: time,
-            x: origin.x,
-            y: origin.y,
-          });
-        });
-      }
-      
-      // Remove old waves (after they've expanded beyond screen)
-      for (let i = waves.length - 1; i >= 0; i--) {
-        const waveAge = time - waves[i].startTime;
-        if (waveAge > 3) { // Remove after 3 seconds
-          waves.splice(i, 1);
-        }
-      }
-      
-      // Draw all propagating waves
-      waves.forEach(wave => {
-        const waveAge = time - wave.startTime;
+        // Each line has its own phase offset for variety
+        const phaseOffset = lineIndex * 0.3;
         
-        // Heartbeat-style propagation: fast expansion with decay
-        const expansionCurve = (t: number) => {
-          // Rapid expansion at first, then slows down
-          return t * 800 * Math.exp(-t * 0.5);
-        };
+        // Draw dotted line from left to right
+        const dotSpacing = 8;
+        const dotCount = Math.floor(width / dotSpacing);
         
-        const radius = expansionCurve(waveAge);
-        const maxRadius = Math.max(width, height) * 1.5;
-        
-        // Only draw if within visible range
-        if (radius < maxRadius) {
-          // Opacity decays over time
-          const baseAlpha = Math.max(0, 1 - (waveAge / 3));
+        for (let i = 0; i < dotCount; i++) {
+          const x = i * dotSpacing;
           
-          // Draw dots in concentric circles
-          const dotCount = Math.floor(radius * 0.8);
-          const spacing = (Math.PI * 2) / dotCount;
+          // Heartbeat wave that travels from left to right
+          const wavePhase = (x / width) * Math.PI * 4 - time * 3 + phaseOffset;
           
-          for (let i = 0; i < dotCount; i++) {
-            const angle = i * spacing + waveAge * 0.5; // Slight rotation over time
-            const dotRadius = radius;
+          // Create heartbeat pattern - sharp pulse with rest period
+          const heartbeatCycle = (wavePhase % (Math.PI * 2)) / (Math.PI * 2);
+          let intensity = 0;
+          
+          if (heartbeatCycle < 0.05) {
+            // Sharp spike
+            intensity = Math.sin((heartbeatCycle / 0.05) * Math.PI);
+          } else if (heartbeatCycle < 0.08) {
+            // Small dip
+            intensity = -Math.sin(((heartbeatCycle - 0.05) / 0.03) * Math.PI) * 0.3;
+          } else if (heartbeatCycle < 0.5) {
+            // Gradual build-up
+            intensity = (heartbeatCycle - 0.08) * 0.3;
+          } else {
+            // Rest period with slight activity
+            intensity = Math.sin(heartbeatCycle * 20) * 0.1;
+          }
+          
+          // Vertical wave modulation
+          const verticalWave = Math.sin(x * 0.02 + time * 2 + phaseOffset) * 30;
+          const modulatedY = y + verticalWave * intensity;
+          
+          // Dot size varies with intensity
+          const dotSize = 1.5 + intensity * 4;
+          const alpha = 0.15 + intensity * 0.7;
+          
+          if (alpha > 0.1) {
+            // Color based on position and intensity
+            const colorProgress = x / width;
             
-            const x = wave.x + Math.cos(angle) * dotRadius;
-            const y = wave.y + Math.sin(angle) * dotRadius;
-            
-            // Vary dot size based on position in circle
-            const dotSize = 2 + Math.sin(i * 0.5 + waveAge) * 1;
-            const alpha = baseAlpha * (0.5 + Math.sin(i * 0.3) * 0.5);
-            
-            // Color gradient from cyan to emerald based on angle
-            const colorMix = (Math.sin(angle + waveAge) + 1) / 2;
-            
-            if (document.documentElement.classList.contains('dark')) {
-              const r = Math.floor(6 + colorMix * 10);
-              const g = Math.floor(182 - colorMix * 166);
-              const b = Math.floor(212 - colorMix * 83);
+            if (isDark) {
+              const r = Math.floor(6 + colorProgress * 10);
+              const g = Math.floor(182 - colorProgress * 166);
+              const b = Math.floor(212 - colorProgress * 83);
               ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
             } else {
-              const r = Math.floor(6 + colorMix * 10);
-              const g = Math.floor(182 - colorMix * 166);
-              const b = Math.floor(212 - colorMix * 83);
+              const r = Math.floor(6 + colorProgress * 10);
+              const g = Math.floor(182 - colorProgress * 166);
+              const b = Math.floor(212 - colorProgress * 83);
               ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.8})`;
             }
             
             ctx.beginPath();
-            ctx.arc(x, y, dotSize, 0, Math.PI * 2);
+            ctx.arc(x, modulatedY, dotSize, 0, Math.PI * 2);
             ctx.fill();
           }
           
-          // Draw multiple rings for each wave
-          const ringCount = 3;
-          for (let ring = 1; ring <= ringCount; ring++) {
-            const ringRadius = radius - ring * 30;
-            if (ringRadius > 0 && ringRadius < maxRadius) {
-              const ringAlpha = baseAlpha * (1 - ring * 0.2);
-              const ringDotCount = Math.floor(ringRadius * 0.6);
-              const ringSpacing = (Math.PI * 2) / ringDotCount;
-              
-              for (let i = 0; i < ringDotCount; i++) {
-                const angle = i * ringSpacing - waveAge * 0.3;
-                const x = wave.x + Math.cos(angle) * ringRadius;
-                const y = wave.y + Math.sin(angle) * ringRadius;
-                
-                const dotSize = 1.5 + Math.cos(i * 0.7) * 0.5;
-                const alpha = ringAlpha * (0.4 + Math.cos(i * 0.4 + ring) * 0.6);
-                
-                if (document.documentElement.classList.contains('dark')) {
-                  ctx.fillStyle = `rgba(6, 182, 212, ${alpha})`;
-                } else {
-                  ctx.fillStyle = `rgba(6, 182, 212, ${alpha * 0.7})`;
-                }
-                
-                ctx.beginPath();
-                ctx.arc(x, y, dotSize, 0, Math.PI * 2);
-                ctx.fill();
-              }
+          // Add occasional bright pulse dots
+          if (intensity > 0.7) {
+            const glowAlpha = intensity * 0.5;
+            if (isDark) {
+              ctx.fillStyle = `rgba(6, 182, 212, ${glowAlpha})`;
+            } else {
+              ctx.fillStyle = `rgba(6, 182, 212, ${glowAlpha * 0.7})`;
             }
-          }
-        }
-      });
-      
-      // Add central pulse glow
-      const heartbeatIntensity = Math.abs(Math.sin(time * Math.PI / heartbeatInterval));
-      if (heartbeatIntensity > 0.8) {
-        const pulseAlpha = (heartbeatIntensity - 0.8) * 5;
-        
-        waves.forEach(wave => {
-          const waveAge = time - wave.startTime;
-          if (waveAge < 0.1) {
+            
             ctx.beginPath();
-            ctx.arc(wave.x, wave.y, 20, 0, Math.PI * 2);
-            const gradient = ctx.createRadialGradient(wave.x, wave.y, 0, wave.x, wave.y, 20);
-            gradient.addColorStop(0, document.documentElement.classList.contains('dark') 
-              ? `rgba(6, 182, 212, ${pulseAlpha})` 
-              : `rgba(6, 182, 212, ${pulseAlpha * 0.7})`);
-            gradient.addColorStop(1, 'rgba(6, 182, 212, 0)');
-            ctx.fillStyle = gradient;
+            ctx.arc(x, modulatedY, dotSize * 2, 0, Math.PI * 2);
             ctx.fill();
           }
-        });
+        }
       }
       
-      time += 0.016; // ~60fps
+      // Also add vertical dotted lines for cross-pattern
+      const verticalLineSpacing = 60;
+      const verticalLineCount = Math.floor(width / verticalLineSpacing) + 2;
+      
+      for (let lineIndex = 0; lineIndex < verticalLineCount; lineIndex++) {
+        const x = lineIndex * verticalLineSpacing;
+        const phaseOffset = lineIndex * 0.4;
+        
+        const dotSpacing = 8;
+        const dotCount = Math.floor(height / dotSpacing);
+        
+        for (let i = 0; i < dotCount; i++) {
+          const y = i * dotSpacing;
+          
+          // Heartbeat wave traveling from top to bottom
+          const wavePhase = (y / height) * Math.PI * 4 - time * 2.5 + phaseOffset;
+          const heartbeatCycle = (wavePhase % (Math.PI * 2)) / (Math.PI * 2);
+          let intensity = 0;
+          
+          if (heartbeatCycle < 0.05) {
+            intensity = Math.sin((heartbeatCycle / 0.05) * Math.PI);
+          } else if (heartbeatCycle < 0.08) {
+            intensity = -Math.sin(((heartbeatCycle - 0.05) / 0.03) * Math.PI) * 0.3;
+          } else if (heartbeatCycle < 0.5) {
+            intensity = (heartbeatCycle - 0.08) * 0.3;
+          } else {
+            intensity = Math.sin(heartbeatCycle * 20) * 0.1;
+          }
+          
+          const horizontalWave = Math.sin(y * 0.02 + time * 1.8 + phaseOffset) * 20;
+          const modulatedX = x + horizontalWave * intensity;
+          
+          const dotSize = 1.5 + intensity * 3;
+          const alpha = 0.1 + intensity * 0.5;
+          
+          if (alpha > 0.08) {
+            if (isDark) {
+              ctx.fillStyle = `rgba(16, 185, 129, ${alpha})`;
+            } else {
+              ctx.fillStyle = `rgba(16, 185, 129, ${alpha * 0.7})`;
+            }
+            
+            ctx.beginPath();
+            ctx.arc(modulatedX, y, dotSize, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+      
+      time += 0.016;
       animationId = requestAnimationFrame(animate);
     };
 
@@ -219,13 +201,11 @@ export default function HeroSection() {
       id="hero"
       className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-white via-cyan-50/30 to-emerald-50/30 dark:from-gray-950 dark:via-cyan-950/20 dark:to-emerald-950/20"
     >
-      {/* Propagating Dots Canvas */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0 z-0"
       />
 
-      {/* Subtle overlay for text readability */}
       <div className="absolute inset-0 z-10 bg-gradient-to-b from-white/30 via-transparent to-white/30 dark:from-gray-950/30 dark:via-transparent dark:to-gray-950/30 pointer-events-none" />
 
       <motion.div
