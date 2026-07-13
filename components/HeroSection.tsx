@@ -32,129 +32,101 @@ export default function HeroSection() {
       const height = canvas.height;
       const isDark = document.documentElement.classList.contains('dark');
       
-      // Create horizontal dotted lines across the entire height
-      const lineSpacing = 40; // Space between lines
-      const lineCount = Math.floor(height / lineSpacing) + 2;
+      // Slow propagation speed
+      const propagationSpeed = 0.5;
       
-      for (let lineIndex = 0; lineIndex < lineCount; lineIndex++) {
-        const y = lineIndex * lineSpacing;
+      // Horizontal dotted lines
+      const horizontalLineSpacing = 50;
+      const horizontalLineCount = Math.floor(height / horizontalLineSpacing) + 2;
+      
+      for (let lineIndex = 0; lineIndex < horizontalLineCount; lineIndex++) {
+        const y = lineIndex * horizontalLineSpacing;
+        const phaseOffset = lineIndex * 0.2;
         
-        // Each line has its own phase offset for variety
-        const phaseOffset = lineIndex * 0.3;
-        
-        // Draw dotted line from left to right
-        const dotSpacing = 8;
+        const dotSpacing = 12;
         const dotCount = Math.floor(width / dotSpacing);
         
         for (let i = 0; i < dotCount; i++) {
           const x = i * dotSpacing;
           
-          // Heartbeat wave that travels from left to right
-          const wavePhase = (x / width) * Math.PI * 4 - time * 3 + phaseOffset;
+          // Slow gentle wave propagation
+          const wavePhase = (x / width) * Math.PI * 2 - time * propagationSpeed + phaseOffset;
           
-          // Create heartbeat pattern - sharp pulse with rest period
+          // Soft heartbeat pattern
           const heartbeatCycle = (wavePhase % (Math.PI * 2)) / (Math.PI * 2);
           let intensity = 0;
           
-          if (heartbeatCycle < 0.05) {
-            // Sharp spike
-            intensity = Math.sin((heartbeatCycle / 0.05) * Math.PI);
-          } else if (heartbeatCycle < 0.08) {
-            // Small dip
-            intensity = -Math.sin(((heartbeatCycle - 0.05) / 0.03) * Math.PI) * 0.3;
-          } else if (heartbeatCycle < 0.5) {
-            // Gradual build-up
-            intensity = (heartbeatCycle - 0.08) * 0.3;
+          if (heartbeatCycle < 0.08) {
+            // Gentle pulse
+            intensity = Math.sin((heartbeatCycle / 0.08) * Math.PI) * 0.6;
+          } else if (heartbeatCycle < 0.12) {
+            // Tiny dip
+            intensity = -Math.sin(((heartbeatCycle - 0.08) / 0.04) * Math.PI) * 0.15;
           } else {
-            // Rest period with slight activity
-            intensity = Math.sin(heartbeatCycle * 20) * 0.1;
+            // Very subtle baseline
+            intensity = Math.sin(heartbeatCycle * 10) * 0.05;
           }
           
-          // Vertical wave modulation
-          const verticalWave = Math.sin(x * 0.02 + time * 2 + phaseOffset) * 30;
+          // Subtle vertical wave
+          const verticalWave = Math.sin(x * 0.01 + time * 0.8 + phaseOffset) * 10;
           const modulatedY = y + verticalWave * intensity;
           
-          // Dot size varies with intensity
-          const dotSize = 1.5 + intensity * 4;
-          const alpha = 0.15 + intensity * 0.7;
+          // Small dots
+          const dotSize = 1 + intensity * 2;
+          const alpha = 0.08 + intensity * 0.25;
           
-          if (alpha > 0.1) {
-            // Color based on position and intensity
-            const colorProgress = x / width;
-            
+          if (alpha > 0.06) {
             if (isDark) {
-              const r = Math.floor(6 + colorProgress * 10);
-              const g = Math.floor(182 - colorProgress * 166);
-              const b = Math.floor(212 - colorProgress * 83);
-              ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+              ctx.fillStyle = `rgba(6, 182, 212, ${alpha})`;
             } else {
-              const r = Math.floor(6 + colorProgress * 10);
-              const g = Math.floor(182 - colorProgress * 166);
-              const b = Math.floor(212 - colorProgress * 83);
-              ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.8})`;
+              ctx.fillStyle = `rgba(6, 182, 212, ${alpha * 0.6})`;
             }
             
             ctx.beginPath();
             ctx.arc(x, modulatedY, dotSize, 0, Math.PI * 2);
             ctx.fill();
           }
-          
-          // Add occasional bright pulse dots
-          if (intensity > 0.7) {
-            const glowAlpha = intensity * 0.5;
-            if (isDark) {
-              ctx.fillStyle = `rgba(6, 182, 212, ${glowAlpha})`;
-            } else {
-              ctx.fillStyle = `rgba(6, 182, 212, ${glowAlpha * 0.7})`;
-            }
-            
-            ctx.beginPath();
-            ctx.arc(x, modulatedY, dotSize * 2, 0, Math.PI * 2);
-            ctx.fill();
-          }
         }
       }
       
-      // Also add vertical dotted lines for cross-pattern
-      const verticalLineSpacing = 60;
+      // Vertical dotted lines
+      const verticalLineSpacing = 70;
       const verticalLineCount = Math.floor(width / verticalLineSpacing) + 2;
       
       for (let lineIndex = 0; lineIndex < verticalLineCount; lineIndex++) {
         const x = lineIndex * verticalLineSpacing;
-        const phaseOffset = lineIndex * 0.4;
+        const phaseOffset = lineIndex * 0.25;
         
-        const dotSpacing = 8;
+        const dotSpacing = 12;
         const dotCount = Math.floor(height / dotSpacing);
         
         for (let i = 0; i < dotCount; i++) {
           const y = i * dotSpacing;
           
-          // Heartbeat wave traveling from top to bottom
-          const wavePhase = (y / height) * Math.PI * 4 - time * 2.5 + phaseOffset;
+          // Slow gentle wave from top to bottom
+          const wavePhase = (y / height) * Math.PI * 2 - time * propagationSpeed * 0.8 + phaseOffset;
           const heartbeatCycle = (wavePhase % (Math.PI * 2)) / (Math.PI * 2);
           let intensity = 0;
           
-          if (heartbeatCycle < 0.05) {
-            intensity = Math.sin((heartbeatCycle / 0.05) * Math.PI);
-          } else if (heartbeatCycle < 0.08) {
-            intensity = -Math.sin(((heartbeatCycle - 0.05) / 0.03) * Math.PI) * 0.3;
-          } else if (heartbeatCycle < 0.5) {
-            intensity = (heartbeatCycle - 0.08) * 0.3;
+          if (heartbeatCycle < 0.08) {
+            intensity = Math.sin((heartbeatCycle / 0.08) * Math.PI) * 0.5;
+          } else if (heartbeatCycle < 0.12) {
+            intensity = -Math.sin(((heartbeatCycle - 0.08) / 0.04) * Math.PI) * 0.12;
           } else {
-            intensity = Math.sin(heartbeatCycle * 20) * 0.1;
+            intensity = Math.sin(heartbeatCycle * 10) * 0.04;
           }
           
-          const horizontalWave = Math.sin(y * 0.02 + time * 1.8 + phaseOffset) * 20;
+          const horizontalWave = Math.sin(y * 0.01 + time * 0.7 + phaseOffset) * 8;
           const modulatedX = x + horizontalWave * intensity;
           
-          const dotSize = 1.5 + intensity * 3;
-          const alpha = 0.1 + intensity * 0.5;
+          const dotSize = 1 + intensity * 1.5;
+          const alpha = 0.06 + intensity * 0.2;
           
-          if (alpha > 0.08) {
+          if (alpha > 0.05) {
             if (isDark) {
               ctx.fillStyle = `rgba(16, 185, 129, ${alpha})`;
             } else {
-              ctx.fillStyle = `rgba(16, 185, 129, ${alpha * 0.7})`;
+              ctx.fillStyle = `rgba(16, 185, 129, ${alpha * 0.5})`;
             }
             
             ctx.beginPath();
@@ -164,7 +136,7 @@ export default function HeroSection() {
         }
       }
       
-      time += 0.016;
+      time += 0.01; // Slower animation
       animationId = requestAnimationFrame(animate);
     };
 
@@ -199,14 +171,14 @@ export default function HeroSection() {
   return (
     <section
       id="hero"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-white via-cyan-50/30 to-emerald-50/30 dark:from-gray-950 dark:via-cyan-950/20 dark:to-emerald-950/20"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-white via-cyan-50/20 to-emerald-50/20 dark:from-gray-950 dark:via-cyan-950/10 dark:to-emerald-950/10"
     >
       <canvas
         ref={canvasRef}
         className="absolute inset-0 z-0"
       />
 
-      <div className="absolute inset-0 z-10 bg-gradient-to-b from-white/30 via-transparent to-white/30 dark:from-gray-950/30 dark:via-transparent dark:to-gray-950/30 pointer-events-none" />
+      <div className="absolute inset-0 z-10 pointer-events-none" />
 
       <motion.div
         variants={containerVariants}
@@ -234,7 +206,7 @@ export default function HeroSection() {
 
         <motion.p
           variants={itemVariants}
-          className="mt-6 text-xl sm:text-2xl text-gray-700 dark:text-gray-200 max-w-3xl mx-auto leading-relaxed font-medium backdrop-blur-sm"
+          className="mt-6 text-xl sm:text-2xl text-gray-700 dark:text-gray-200 max-w-3xl mx-auto leading-relaxed font-medium"
         >
           Building scalable and modern web & mobile applications
         </motion.p>
