@@ -26,104 +26,123 @@ export default function HeroSection() {
     const animate = () => {
       if (!canvas || !ctx) return;
       
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Trail effect - clear with opacity for smooth movement
+      ctx.fillStyle = document.documentElement.classList.contains('dark')
+        ? 'rgba(3, 7, 18, 0.05)'
+        : 'rgba(255, 255, 255, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       
       const width = canvas.width;
       const height = canvas.height;
       const isDark = document.documentElement.classList.contains('dark');
       
-      // Horizontal continuous dotted lines with smooth wave
-      const horizontalSpacing = 45;
-      const horizontalLines = Math.floor(height / horizontalSpacing) + 2;
+      // Multiple diagonal lines at different angles
+      const diagonalLines = [
+        { angle: 35, spacing: 80 },
+        { angle: -35, spacing: 80 },
+        { angle: 55, spacing: 100 },
+        { angle: -55, spacing: 100 },
+      ];
       
-      for (let line = 0; line < horizontalLines; line++) {
-        const baseY = line * horizontalSpacing;
-        const phaseOffset = line * 0.15;
+      diagonalLines.forEach(({ angle, spacing }) => {
+        const angleRad = (angle * Math.PI) / 180;
+        const cos = Math.cos(angleRad);
+        const sin = Math.sin(angleRad);
         
-        // Continuous dots with no gaps
-        for (let x = 0; x <= width; x += 3) {
-          // Smooth wave propagation
-          const wavePhase = (x / width) * Math.PI * 1.5 - time * 0.4 + phaseOffset;
+        // Calculate how many lines we need
+        const diagonalLength = Math.sqrt(width * width + height * height);
+        const lineCount = Math.floor(diagonalLength / spacing) + 2;
+        
+        for (let line = 0; line < lineCount; line++) {
+          // Starting point offset for each line
+          const offset = line * spacing - diagonalLength / 2;
           
-          // Gentle heartbeat pulse
-          const heartbeatCycle = (wavePhase % (Math.PI * 2)) / (Math.PI * 2);
-          let intensity = 0;
+          // Draw dots along this diagonal line
+          const dotSpacing = 4;
+          const dotCount = Math.floor(diagonalLength / dotSpacing);
           
-          if (heartbeatCycle < 0.1) {
-            intensity = Math.sin((heartbeatCycle / 0.1) * Math.PI) * 0.5;
-          } else if (heartbeatCycle < 0.13) {
-            intensity = -Math.sin(((heartbeatCycle - 0.1) / 0.03) * Math.PI) * 0.1;
-          } else {
-            intensity = Math.sin(heartbeatCycle * 8) * 0.03;
-          }
-          
-          // Smooth vertical wave movement
-          const waveY = Math.sin(x * 0.008 + time * 0.6 + phaseOffset) * 12 * intensity;
-          const y = baseY + waveY;
-          
-          // Consistent dot size
-          const dotSize = 1.2 + intensity * 1.5;
-          const alpha = 0.12 + intensity * 0.3;
-          
-          if (alpha > 0.1) {
-            if (isDark) {
-              ctx.fillStyle = `rgba(6, 182, 212, ${alpha})`;
+          for (let i = 0; i < dotCount; i++) {
+            const distance = i * dotSpacing - diagonalLength / 2;
+            
+            // Calculate position on the line
+            let x, y;
+            
+            if (angle > 0) {
+              x = width / 2 + (distance * cos - offset * sin);
+              y = height / 2 + (distance * sin + offset * cos);
             } else {
-              ctx.fillStyle = `rgba(6, 182, 212, ${alpha * 0.7})`;
+              x = width / 2 + (distance * cos - offset * sin);
+              y = height / 2 + (distance * sin + offset * cos);
             }
             
-            ctx.beginPath();
-            ctx.arc(x, y, dotSize, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
-      }
-      
-      // Vertical continuous dotted lines
-      const verticalSpacing = 60;
-      const verticalLines = Math.floor(width / verticalSpacing) + 2;
-      
-      for (let line = 0; line < verticalLines; line++) {
-        const baseX = line * verticalSpacing;
-        const phaseOffset = line * 0.2;
-        
-        // Continuous dots from top to bottom
-        for (let y = 0; y <= height; y += 3) {
-          // Smooth wave propagation
-          const wavePhase = (y / height) * Math.PI * 1.5 - time * 0.35 + phaseOffset;
-          
-          // Gentle heartbeat pulse
-          const heartbeatCycle = (wavePhase % (Math.PI * 2)) / (Math.PI * 2);
-          let intensity = 0;
-          
-          if (heartbeatCycle < 0.1) {
-            intensity = Math.sin((heartbeatCycle / 0.1) * Math.PI) * 0.4;
-          } else if (heartbeatCycle < 0.13) {
-            intensity = -Math.sin(((heartbeatCycle - 0.1) / 0.03) * Math.PI) * 0.08;
-          } else {
-            intensity = Math.sin(heartbeatCycle * 8) * 0.02;
-          }
-          
-          // Smooth horizontal wave
-          const waveX = Math.sin(y * 0.008 + time * 0.5 + phaseOffset) * 10 * intensity;
-          const x = baseX + waveX;
-          
-          const dotSize = 1.2 + intensity * 1.3;
-          const alpha = 0.1 + intensity * 0.25;
-          
-          if (alpha > 0.08) {
-            if (isDark) {
-              ctx.fillStyle = `rgba(16, 185, 129, ${alpha})`;
-            } else {
-              ctx.fillStyle = `rgba(16, 185, 129, ${alpha * 0.6})`;
+            // Only draw if on screen
+            if (x >= -50 && x <= width + 50 && y >= -50 && y <= height + 50) {
+              // Propagation wave traveling along the line
+              const wavePosition = (distance / diagonalLength) * Math.PI * 3 - time * 0.6 + line * 0.3;
+              
+              // Heartbeat pulse shape
+              const cycle = (wavePosition % (Math.PI * 2)) / (Math.PI * 2);
+              let intensity = 0;
+              
+              if (cycle < 0.06) {
+                // Sharp pulse
+                intensity = Math.sin((cycle / 0.06) * Math.PI) * 0.7;
+              } else if (cycle < 0.08) {
+                // Quick dip
+                intensity = -Math.sin(((cycle - 0.06) / 0.02) * Math.PI) * 0.15;
+              } else {
+                // Gentle rest
+                intensity = Math.sin(cycle * 6) * 0.04;
+              }
+              
+              // Wave wobble perpendicular to the line
+              const wobble = Math.sin(distance * 0.01 + time * 0.4 + line) * 3 * intensity;
+              
+              // Adjust position with wobble
+              const finalX = x + wobble * Math.cos(angleRad + Math.PI / 2);
+              const finalY = y + wobble * Math.sin(angleRad + Math.PI / 2);
+              
+              const dotSize = 1.5 + intensity * 2.5;
+              const alpha = 0.15 + intensity * 0.5;
+              
+              if (alpha > 0.1) {
+                // Color varies based on line angle and position
+                const colorMix = (Math.sin(distance * 0.005 + line) + 1) / 2;
+                
+                if (isDark) {
+                  const r = Math.floor(6 + colorMix * 10);
+                  const g = Math.floor(182 - colorMix * 166);
+                  const b = Math.floor(212 - colorMix * 83);
+                  ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                } else {
+                  const r = Math.floor(6 + colorMix * 10);
+                  const g = Math.floor(182 - colorMix * 166);
+                  const b = Math.floor(212 - colorMix * 83);
+                  ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.8})`;
+                }
+                
+                ctx.beginPath();
+                ctx.arc(finalX, finalY, dotSize, 0, Math.PI * 2);
+                ctx.fill();
+              }
+              
+              // Brighter dots at the peak of the pulse
+              if (intensity > 0.5) {
+                const glowAlpha = (intensity - 0.5) * 0.6;
+                if (isDark) {
+                  ctx.fillStyle = `rgba(6, 182, 212, ${glowAlpha})`;
+                } else {
+                  ctx.fillStyle = `rgba(6, 182, 212, ${glowAlpha * 0.7})`;
+                }
+                
+                ctx.beginPath();
+                ctx.arc(finalX, finalY, dotSize * 1.5, 0, Math.PI * 2);
+                ctx.fill();
+              }
             }
-            
-            ctx.beginPath();
-            ctx.arc(x, y, dotSize, 0, Math.PI * 2);
-            ctx.fill();
           }
         }
-      }
+      });
       
       time += 0.008;
       animationId = requestAnimationFrame(animate);
