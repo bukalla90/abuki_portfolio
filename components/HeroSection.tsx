@@ -15,6 +15,13 @@ export default function HeroSection() {
 
     let animationId: number;
     let time = 0;
+    
+    // Array to store multiple propagating waves
+    const waves: Array<{
+      startTime: number;
+      x: number;
+      y: number;
+    }> = [];
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -26,107 +33,153 @@ export default function HeroSection() {
     const animate = () => {
       if (!canvas || !ctx) return;
       
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = document.documentElement.classList.contains('dark')
+        ? 'rgba(3, 7, 18, 0.15)'
+        : 'rgba(255, 255, 255, 0.15)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       
       const width = canvas.width;
       const height = canvas.height;
-      const centerX = width / 2;
       
-      // Heartbeat pulse effect - sharp peak followed by decay
-      const heartbeat = (t: number) => {
-        const cycle = t % 1.5; // 1.5 second cycle
-        if (cycle < 0.1) {
-          // Sharp spike
-          return Math.sin((cycle / 0.1) * Math.PI) * 0.8;
-        } else if (cycle < 0.2) {
-          // Quick dip
-          return -Math.sin(((cycle - 0.1) / 0.1) * Math.PI) * 0.3;
-        } else {
-          // Rest period
-          return 0;
-        }
-      };
-
-      const pulse = heartbeat(time);
+      // Heartbeat timing
+      const heartbeatInterval = 1.2; // Time between beats
+      const currentBeatCycle = Math.floor(time / heartbeatInterval);
+      const beatProgress = (time % heartbeatInterval) / heartbeatInterval;
       
-      // Draw vertical lines across the entire width
-      const lineCount = 80;
-      const spacing = width / lineCount;
-      
-      for (let i = 0; i <= lineCount; i++) {
-        const x = i * spacing;
-        const distanceFromCenter = Math.abs(x - centerX) / centerX;
+      // Create new wave at each heartbeat
+      if (beatProgress < 0.05 && waves.length === 0 || 
+          (waves.length > 0 && currentBeatCycle > Math.floor(waves[waves.length - 1].startTime / heartbeatInterval))) {
+        // Add multiple origin points for each beat
+        const origins = [
+          { x: width * 0.3, y: height * 0.4 },
+          { x: width * 0.7, y: height * 0.6 },
+          { x: width * 0.5, y: height * 0.3 },
+          { x: width * 0.5, y: height * 0.7 },
+          { x: width * 0.2, y: height * 0.5 },
+          { x: width * 0.8, y: height * 0.5 },
+        ];
         
-        // Multiple wave layers that respond to the heartbeat
-        const wave1 = Math.sin(time * 2 + i * 0.3) * 50;
-        const wave2 = Math.cos(time * 1.5 + i * 0.2) * 40;
-        const wave3 = Math.sin(time * 2.5 + i * 0.15 + distanceFromCenter * 10) * 30;
-        
-        // Base amplitude increases with pulse
-        const baseAmplitude = 60 + pulse * 120;
-        const amplitude = baseAmplitude * (1 - distanceFromCenter * 0.5);
-        
-        const yOffset = wave1 + wave2 + wave3;
-        
-        // Create gradient for each line
-        const gradient = ctx.createLinearGradient(x, 0, x, height);
-        
-        if (document.documentElement.classList.contains('dark')) {
-          // Dark mode colors
-          const alpha = 0.15 + pulse * 0.3;
-          gradient.addColorStop(0, `rgba(6, 182, 212, ${alpha * 0.3})`);   // cyan-500
-          gradient.addColorStop(0.5, `rgba(6, 182, 212, ${alpha})`);        // cyan-500
-          gradient.addColorStop(1, `rgba(16, 185, 129, ${alpha * 0.3})`);   // emerald-500
-        } else {
-          // Light mode colors
-          const alpha = 0.1 + pulse * 0.2;
-          gradient.addColorStop(0, `rgba(6, 182, 212, ${alpha * 0.3})`);   // cyan-500
-          gradient.addColorStop(0.5, `rgba(6, 182, 212, ${alpha})`);        // cyan-500
-          gradient.addColorStop(1, `rgba(16, 185, 129, ${alpha * 0.3})`);   // emerald-500
-        }
-        
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = 1 + pulse * 2; // Lines get thicker with pulse
-        
-        ctx.beginPath();
-        
-        // Draw vertical wave line
-        for (let y = 0; y <= height; y += 5) {
-          const progress = y / height;
-          const waveOffset = Math.sin(progress * Math.PI * 4 + time * 3 + i * 0.5) * amplitude * progress;
-          const finalX = x + waveOffset + yOffset * progress;
-          
-          if (y === 0) {
-            ctx.moveTo(finalX, y);
-          } else {
-            ctx.lineTo(finalX, y);
-          }
-        }
-        
-        ctx.stroke();
+        origins.forEach(origin => {
+          waves.push({
+            startTime: time,
+            x: origin.x,
+            y: origin.y,
+          });
+        });
       }
       
-      // Add central pulse ring
-      if (pulse > 0.1) {
-        const ringRadius = 100 + pulse * 200;
-        const ringAlpha = pulse * 0.3;
+      // Remove old waves (after they've expanded beyond screen)
+      for (let i = waves.length - 1; i >= 0; i--) {
+        const waveAge = time - waves[i].startTime;
+        if (waveAge > 3) { // Remove after 3 seconds
+          waves.splice(i, 1);
+        }
+      }
+      
+      // Draw all propagating waves
+      waves.forEach(wave => {
+        const waveAge = time - wave.startTime;
         
-        ctx.beginPath();
-        ctx.arc(centerX, height / 2, ringRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = document.documentElement.classList.contains('dark')
-          ? `rgba(6, 182, 212, ${ringAlpha})`
-          : `rgba(6, 182, 212, ${ringAlpha * 0.7})`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        // Heartbeat-style propagation: fast expansion with decay
+        const expansionCurve = (t: number) => {
+          // Rapid expansion at first, then slows down
+          return t * 800 * Math.exp(-t * 0.5);
+        };
         
-        // Second ring
-        ctx.beginPath();
-        ctx.arc(centerX, height / 2, ringRadius * 1.5, 0, Math.PI * 2);
-        ctx.strokeStyle = document.documentElement.classList.contains('dark')
-          ? `rgba(16, 185, 129, ${ringAlpha * 0.5})`
-          : `rgba(16, 185, 129, ${ringAlpha * 0.35})`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        const radius = expansionCurve(waveAge);
+        const maxRadius = Math.max(width, height) * 1.5;
+        
+        // Only draw if within visible range
+        if (radius < maxRadius) {
+          // Opacity decays over time
+          const baseAlpha = Math.max(0, 1 - (waveAge / 3));
+          
+          // Draw dots in concentric circles
+          const dotCount = Math.floor(radius * 0.8);
+          const spacing = (Math.PI * 2) / dotCount;
+          
+          for (let i = 0; i < dotCount; i++) {
+            const angle = i * spacing + waveAge * 0.5; // Slight rotation over time
+            const dotRadius = radius;
+            
+            const x = wave.x + Math.cos(angle) * dotRadius;
+            const y = wave.y + Math.sin(angle) * dotRadius;
+            
+            // Vary dot size based on position in circle
+            const dotSize = 2 + Math.sin(i * 0.5 + waveAge) * 1;
+            const alpha = baseAlpha * (0.5 + Math.sin(i * 0.3) * 0.5);
+            
+            // Color gradient from cyan to emerald based on angle
+            const colorMix = (Math.sin(angle + waveAge) + 1) / 2;
+            
+            if (document.documentElement.classList.contains('dark')) {
+              const r = Math.floor(6 + colorMix * 10);
+              const g = Math.floor(182 - colorMix * 166);
+              const b = Math.floor(212 - colorMix * 83);
+              ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            } else {
+              const r = Math.floor(6 + colorMix * 10);
+              const g = Math.floor(182 - colorMix * 166);
+              const b = Math.floor(212 - colorMix * 83);
+              ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.8})`;
+            }
+            
+            ctx.beginPath();
+            ctx.arc(x, y, dotSize, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          
+          // Draw multiple rings for each wave
+          const ringCount = 3;
+          for (let ring = 1; ring <= ringCount; ring++) {
+            const ringRadius = radius - ring * 30;
+            if (ringRadius > 0 && ringRadius < maxRadius) {
+              const ringAlpha = baseAlpha * (1 - ring * 0.2);
+              const ringDotCount = Math.floor(ringRadius * 0.6);
+              const ringSpacing = (Math.PI * 2) / ringDotCount;
+              
+              for (let i = 0; i < ringDotCount; i++) {
+                const angle = i * ringSpacing - waveAge * 0.3;
+                const x = wave.x + Math.cos(angle) * ringRadius;
+                const y = wave.y + Math.sin(angle) * ringRadius;
+                
+                const dotSize = 1.5 + Math.cos(i * 0.7) * 0.5;
+                const alpha = ringAlpha * (0.4 + Math.cos(i * 0.4 + ring) * 0.6);
+                
+                if (document.documentElement.classList.contains('dark')) {
+                  ctx.fillStyle = `rgba(6, 182, 212, ${alpha})`;
+                } else {
+                  ctx.fillStyle = `rgba(6, 182, 212, ${alpha * 0.7})`;
+                }
+                
+                ctx.beginPath();
+                ctx.arc(x, y, dotSize, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
+          }
+        }
+      });
+      
+      // Add central pulse glow
+      const heartbeatIntensity = Math.abs(Math.sin(time * Math.PI / heartbeatInterval));
+      if (heartbeatIntensity > 0.8) {
+        const pulseAlpha = (heartbeatIntensity - 0.8) * 5;
+        
+        waves.forEach(wave => {
+          const waveAge = time - wave.startTime;
+          if (waveAge < 0.1) {
+            ctx.beginPath();
+            ctx.arc(wave.x, wave.y, 20, 0, Math.PI * 2);
+            const gradient = ctx.createRadialGradient(wave.x, wave.y, 0, wave.x, wave.y, 20);
+            gradient.addColorStop(0, document.documentElement.classList.contains('dark') 
+              ? `rgba(6, 182, 212, ${pulseAlpha})` 
+              : `rgba(6, 182, 212, ${pulseAlpha * 0.7})`);
+            gradient.addColorStop(1, 'rgba(6, 182, 212, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+          }
+        });
       }
       
       time += 0.016; // ~60fps
@@ -166,14 +219,14 @@ export default function HeroSection() {
       id="hero"
       className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-white via-cyan-50/30 to-emerald-50/30 dark:from-gray-950 dark:via-cyan-950/20 dark:to-emerald-950/20"
     >
-      {/* Heartbeat Wave Canvas */}
+      {/* Propagating Dots Canvas */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0 z-0"
       />
 
-      {/* Gradient Overlay for text readability */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-b from-white/50 via-transparent to-white/50 dark:from-gray-950/50 dark:via-transparent dark:to-gray-950/50 pointer-events-none" />
+      {/* Subtle overlay for text readability */}
+      <div className="absolute inset-0 z-10 bg-gradient-to-b from-white/30 via-transparent to-white/30 dark:from-gray-950/30 dark:via-transparent dark:to-gray-950/30 pointer-events-none" />
 
       <motion.div
         variants={containerVariants}
