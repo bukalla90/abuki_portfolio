@@ -2,155 +2,142 @@
 
 import { motion, type Variants } from "framer-motion";
 import { useEffect, useRef } from "react";
-import * as THREE from "three";
 
 export default function HeroSection() {
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    // Scene setup
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ 
-      antialias: true, 
-      alpha: true 
-    });
-    
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    canvasRef.current.appendChild(renderer.domElement);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    // Create wave geometry
-    const geometry = new THREE.PlaneGeometry(15, 15, 128, 128);
-    geometry.rotateX(-Math.PI / 2.5);
-    
-    const material = new THREE.MeshPhongMaterial({
-      color: 0x00bcd4,
-      emissive: 0x00838f,
-      shininess: 30,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.4,
-    });
+    let animationId: number;
+    let time = 0;
 
-    const wave = new THREE.Mesh(geometry, material);
-    scene.add(wave);
-
-    // Add multiple wave layers for depth
-    const geometry2 = new THREE.PlaneGeometry(15, 15, 96, 96);
-    geometry2.rotateX(-Math.PI / 2.5);
-    
-    const material2 = new THREE.MeshPhongMaterial({
-      color: 0x00e676,
-      emissive: 0x009624,
-      shininess: 20,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.3,
-    });
-
-    const wave2 = new THREE.Mesh(geometry2, material2);
-    scene.add(wave2);
-
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0x00bcd4, 1);
-    directionalLight.position.set(5, 10, 5);
-    scene.add(directionalLight);
-
-    const directionalLight2 = new THREE.DirectionalLight(0x00e676, 0.8);
-    directionalLight2.position.set(-5, 5, -5);
-    scene.add(directionalLight2);
-
-    // Camera position
-    camera.position.set(0, 8, 12);
-    camera.lookAt(0, 0, 0);
-
-    // Mouse interaction
-    let mouseX = 0;
-    let mouseY = 0;
-    
-    const handleMouseMove = (event: MouseEvent) => {
-      mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-      mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
     };
+    resize();
+    window.addEventListener("resize", resize);
 
-    window.addEventListener('mousemove', handleMouseMove);
-
-    // Animation
-    const clock = new THREE.Clock();
-    
     const animate = () => {
-      requestAnimationFrame(animate);
+      if (!canvas || !ctx) return;
       
-      const elapsedTime = clock.getElapsedTime();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Animate first wave layer
-      const positions = geometry.attributes.position;
-      for (let i = 0; i < positions.count; i++) {
-        const x = positions.getX(i);
-        const y = positions.getY(i);
+      const width = canvas.width;
+      const height = canvas.height;
+      const centerX = width / 2;
+      
+      // Heartbeat pulse effect - sharp peak followed by decay
+      const heartbeat = (t: number) => {
+        const cycle = t % 1.5; // 1.5 second cycle
+        if (cycle < 0.1) {
+          // Sharp spike
+          return Math.sin((cycle / 0.1) * Math.PI) * 0.8;
+        } else if (cycle < 0.2) {
+          // Quick dip
+          return -Math.sin(((cycle - 0.1) / 0.1) * Math.PI) * 0.3;
+        } else {
+          // Rest period
+          return 0;
+        }
+      };
+
+      const pulse = heartbeat(time);
+      
+      // Draw vertical lines across the entire width
+      const lineCount = 80;
+      const spacing = width / lineCount;
+      
+      for (let i = 0; i <= lineCount; i++) {
+        const x = i * spacing;
+        const distanceFromCenter = Math.abs(x - centerX) / centerX;
         
-        // Complex wave pattern with multiple frequencies
-        const wave1 = Math.sin(x * 1.5 + elapsedTime * 1.2) * 0.5;
-        const wave2 = Math.cos(y * 1.8 + elapsedTime * 0.8) * 0.4;
-        const wave3 = Math.sin((x + y) * 1.2 + elapsedTime * 1.5) * 0.3;
+        // Multiple wave layers that respond to the heartbeat
+        const wave1 = Math.sin(time * 2 + i * 0.3) * 50;
+        const wave2 = Math.cos(time * 1.5 + i * 0.2) * 40;
+        const wave3 = Math.sin(time * 2.5 + i * 0.15 + distanceFromCenter * 10) * 30;
         
-        positions.setZ(i, wave1 + wave2 + wave3);
+        // Base amplitude increases with pulse
+        const baseAmplitude = 60 + pulse * 120;
+        const amplitude = baseAmplitude * (1 - distanceFromCenter * 0.5);
+        
+        const yOffset = wave1 + wave2 + wave3;
+        
+        // Create gradient for each line
+        const gradient = ctx.createLinearGradient(x, 0, x, height);
+        
+        if (document.documentElement.classList.contains('dark')) {
+          // Dark mode colors
+          const alpha = 0.15 + pulse * 0.3;
+          gradient.addColorStop(0, `rgba(6, 182, 212, ${alpha * 0.3})`);   // cyan-500
+          gradient.addColorStop(0.5, `rgba(6, 182, 212, ${alpha})`);        // cyan-500
+          gradient.addColorStop(1, `rgba(16, 185, 129, ${alpha * 0.3})`);   // emerald-500
+        } else {
+          // Light mode colors
+          const alpha = 0.1 + pulse * 0.2;
+          gradient.addColorStop(0, `rgba(6, 182, 212, ${alpha * 0.3})`);   // cyan-500
+          gradient.addColorStop(0.5, `rgba(6, 182, 212, ${alpha})`);        // cyan-500
+          gradient.addColorStop(1, `rgba(16, 185, 129, ${alpha * 0.3})`);   // emerald-500
+        }
+        
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 1 + pulse * 2; // Lines get thicker with pulse
+        
+        ctx.beginPath();
+        
+        // Draw vertical wave line
+        for (let y = 0; y <= height; y += 5) {
+          const progress = y / height;
+          const waveOffset = Math.sin(progress * Math.PI * 4 + time * 3 + i * 0.5) * amplitude * progress;
+          const finalX = x + waveOffset + yOffset * progress;
+          
+          if (y === 0) {
+            ctx.moveTo(finalX, y);
+          } else {
+            ctx.lineTo(finalX, y);
+          }
+        }
+        
+        ctx.stroke();
       }
-      positions.needsUpdate = true;
       
-      // Animate second wave layer with offset
-      const positions2 = geometry2.attributes.position;
-      for (let i = 0; i < positions2.count; i++) {
-        const x = positions2.getX(i);
-        const y = positions2.getY(i);
+      // Add central pulse ring
+      if (pulse > 0.1) {
+        const ringRadius = 100 + pulse * 200;
+        const ringAlpha = pulse * 0.3;
         
-        const wave1 = Math.sin(x * 1.3 + elapsedTime * 0.9 + 1) * 0.6;
-        const wave2 = Math.cos(y * 1.6 + elapsedTime * 1.1 + 1) * 0.5;
-        const wave3 = Math.sin((x - y) * 1.4 + elapsedTime * 1.3) * 0.35;
+        ctx.beginPath();
+        ctx.arc(centerX, height / 2, ringRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = document.documentElement.classList.contains('dark')
+          ? `rgba(6, 182, 212, ${ringAlpha})`
+          : `rgba(6, 182, 212, ${ringAlpha * 0.7})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
         
-        positions2.setZ(i, wave1 + wave2 + wave3);
+        // Second ring
+        ctx.beginPath();
+        ctx.arc(centerX, height / 2, ringRadius * 1.5, 0, Math.PI * 2);
+        ctx.strokeStyle = document.documentElement.classList.contains('dark')
+          ? `rgba(16, 185, 129, ${ringAlpha * 0.5})`
+          : `rgba(16, 185, 129, ${ringAlpha * 0.35})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
       }
-      positions2.needsUpdate = true;
       
-      // Rotate waves slowly
-      wave.rotation.z += 0.0003;
-      wave2.rotation.z -= 0.0002;
-      
-      // Camera follows mouse
-      camera.position.x += (mouseX * 2 - camera.position.x) * 0.03;
-      camera.position.y += (8 + mouseY * 1.5 - camera.position.y) * 0.03;
-      camera.lookAt(0, 0, -1);
-      
-      renderer.render(scene, camera);
+      time += 0.016; // ~60fps
+      animationId = requestAnimationFrame(animate);
     };
-    
+
     animate();
 
-    // Handle resize
-    const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    };
-    
-    window.addEventListener('resize', handleResize);
-
-    // Cleanup
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('resize', handleResize);
-      canvasRef.current?.removeChild(renderer.domElement);
-      renderer.dispose();
-      geometry.dispose();
-      geometry2.dispose();
-      material.dispose();
-      material2.dispose();
+      cancelAnimationFrame(animationId);
+      window.removeEventListener("resize", resize);
     };
   }, []);
 
@@ -177,31 +164,22 @@ export default function HeroSection() {
   return (
     <section
       id="hero"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-white via-cyan-50/30 to-emerald-50/30 dark:from-gray-950 dark:via-cyan-950/20 dark:to-emerald-950/20"
     >
-      {/* 3D Wave Canvas */}
-      <div 
-        ref={canvasRef} 
+      {/* Heartbeat Wave Canvas */}
+      <canvas
+        ref={canvasRef}
         className="absolute inset-0 z-0"
-        style={{ background: 'linear-gradient(to bottom right, rgba(255,255,255,0.95), rgba(236,254,255,0.9), rgba(236,253,245,0.9))' }}
-      />
-      
-      {/* Dark mode overlay */}
-      <div className="absolute inset-0 z-10 dark:block hidden" 
-        style={{ 
-          background: 'linear-gradient(to bottom right, rgba(3,7,18,0.85), rgba(8,51,68,0.8), rgba(2,44,34,0.8))',
-          mixBlendMode: 'multiply'
-        }} 
       />
 
-      {/* Gradient overlay for better text readability */}
-      <div className="absolute inset-0 z-20 bg-gradient-to-b from-transparent via-transparent to-white/90 dark:to-gray-950/90" />
+      {/* Gradient Overlay for text readability */}
+      <div className="absolute inset-0 z-10 bg-gradient-to-b from-white/50 via-transparent to-white/50 dark:from-gray-950/50 dark:via-transparent dark:to-gray-950/50 pointer-events-none" />
 
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="relative z-30 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
+        className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
       >
         <motion.div variants={itemVariants} className="mb-6">
           <motion.span
@@ -223,7 +201,7 @@ export default function HeroSection() {
 
         <motion.p
           variants={itemVariants}
-          className="mt-6 text-xl sm:text-2xl text-gray-800 dark:text-gray-100 max-w-3xl mx-auto leading-relaxed font-medium backdrop-blur-sm"
+          className="mt-6 text-xl sm:text-2xl text-gray-700 dark:text-gray-200 max-w-3xl mx-auto leading-relaxed font-medium backdrop-blur-sm"
         >
           Building scalable and modern web & mobile applications
         </motion.p>
@@ -261,23 +239,6 @@ export default function HeroSection() {
             Contact Me
           </motion.a>
         </motion.div>
-
-        {/* Floating decorative elements */}
-        <motion.div
-          animate={{ y: [0, -20, 0], opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-20 left-10 w-3 h-3 bg-cyan-400/50 rounded-full blur-sm hidden lg:block z-40"
-        />
-        <motion.div
-          animate={{ y: [0, 20, 0], opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          className="absolute bottom-20 right-10 w-4 h-4 bg-emerald-400/50 rounded-full blur-sm hidden lg:block z-40"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.5, 1], opacity: [0.3, 0.7, 0.3] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute top-40 right-20 w-2 h-2 bg-blue-400/40 rounded-full blur-sm hidden lg:block z-40"
-        />
       </motion.div>
     </section>
   );
